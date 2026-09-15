@@ -1,0 +1,15 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core tests
+        run: swift test
+      - name: App build
+        run: xcodebuild -project App/Less.xcodeproj -scheme Less -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
