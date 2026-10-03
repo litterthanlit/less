@@ -429,6 +429,66 @@ final class LedgerTests: XCTestCase {
     XCTAssertEqual(Ledger.load(from: defaults), ledger)
   }
 
+  func testStopClosesTheRunAndAppendsTheSession() {
+    let earlier = Session(kind: .consume, start: utc(2026, 9, 15, 8), end: utc(2026, 9, 15, 9))
+    let ledger = Ledger(
+      sessions: [earlier],
+      run: Run(kind: .create, start: utc(2026, 9, 15, 10))
+    )
+
+    let stopped = LedgerMutations.stop(on: ledger, at: utc(2026, 9, 15, 11, 30))
+
+    XCTAssertNil(stopped.run)
+    XCTAssertEqual(
+      stopped.sessions,
+      [earlier, Session(kind: .create, start: utc(2026, 9, 15, 10), end: utc(2026, 9, 15, 11, 30))]
+    )
+    let snap = LedgerMutations.snapshot(
+      ledger: stopped,
+      now: utc(2026, 9, 15, 15),
+      calendar: calendar
+    )
+    XCTAssertEqual(snap.create, 5400)
+    XCTAssertEqual(snap.consume, 3600)
+    XCTAssertNil(snap.run)
+  }
+
+  func testStopKeepsTheKindOfTheRun() {
+    let ledger = Ledger(run: Run(kind: .consume, start: utc(2026, 9, 15, 10)))
+    let stopped = LedgerMutations.stop(on: ledger, at: utc(2026, 9, 15, 10, 5))
+    XCTAssertEqual(
+      stopped.sessions,
+      [Session(kind: .consume, start: utc(2026, 9, 15, 10), end: utc(2026, 9, 15, 10, 5))]
+    )
+  }
+
+  func testStopWhenIdleChangesNothing() {
+    let ledger = Ledger(
+      sessions: [
+        Session(kind: .create, start: utc(2026, 9, 15, 10), end: utc(2026, 9, 15, 12))
+      ]
+    )
+    XCTAssertEqual(LedgerMutations.stop(on: ledger, at: utc(2026, 9, 15, 13)), ledger)
+    XCTAssertEqual(LedgerMutations.stop(on: Ledger(), at: utc(2026, 9, 15, 13)), Ledger())
+  }
+
+  func testStopBeforeStartClampsToZeroLengthSession() {
+    let start = utc(2026, 9, 15, 12)
+    let ledger = Ledger(run: Run(kind: .create, start: start))
+    let stopped = LedgerMutations.stop(on: ledger, at: utc(2026, 9, 15, 11))
+    XCTAssertEqual(stopped.sessions, [Session(kind: .create, start: start, end: start)])
+    XCTAssertNil(stopped.run)
+  }
+
+  func testToggleSwitchingKindsWithBackwardsClockClampsTheClosedSession() {
+    let start = utc(2026, 9, 15, 12)
+    let earlier = utc(2026, 9, 15, 11)
+    let started = LedgerMutations.toggle(.create, on: Ledger(), now: start)
+    let switched = LedgerMutations.toggle(.consume, on: started, now: earlier)
+    XCTAssertEqual(switched.sessions, [Session(kind: .create, start: start, end: start)])
+    XCTAssertEqual(switched.run, Run(kind: .consume, start: earlier))
+  }
+
   func testNowBeforeStartCountsZeroAndDoesNotCrash() {
     let start = utc(2026, 9, 15, 12)
     let earlier = utc(2026, 9, 15, 11)
@@ -436,7 +496,7 @@ final class LedgerTests: XCTestCase {
     let closed = LedgerMutations.toggle(.create, on: started, now: earlier)
     XCTAssertEqual(closed.sessions.count, 1)
     XCTAssertEqual(closed.sessions[0].start, start)
-    XCTAssertEqual(closed.sessions[0].end, earlier)
+    XCTAssertEqual(closed.sessions[0].end, start)
     XCTAssertNil(closed.run)
     let snap = LedgerMutations.snapshot(ledger: closed, now: start, calendar: calendar)
     XCTAssertEqual(snap.create, 0)

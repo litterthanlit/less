@@ -57,12 +57,19 @@ public enum LedgerMutations {
   public static func toggle(_ kind: Kind, on ledger: Ledger, now: Date) -> Ledger {
     var sessions = ledger.sessions
     if let run = ledger.run {
-      sessions.append(Session(kind: run.kind, start: run.start, end: now))
+      sessions.append(closed(run, at: now))
       if run.kind == kind {
         return Ledger(sessions: sessions, run: nil)
       }
     }
     return Ledger(sessions: sessions, run: Run(kind: kind, start: now))
+  }
+
+  public static func stop(on ledger: Ledger, at now: Date) -> Ledger {
+    guard let run = ledger.run else {
+      return ledger
+    }
+    return Ledger(sessions: ledger.sessions + [closed(run, at: now)], run: nil)
   }
 
   public static func snapshot(ledger: Ledger, now: Date, calendar: Calendar) -> Snapshot {
@@ -118,6 +125,10 @@ public enum LedgerMutations {
       return "\(ratioText(createSeconds, over: consumeSeconds)) : 1"
     }
     return "1 : \(ratioText(consumeSeconds, over: createSeconds))"
+  }
+
+  private static func closed(_ run: Run, at now: Date) -> Session {
+    Session(kind: run.kind, start: run.start, end: max(run.start, now))
   }
 
   private static func overlap(

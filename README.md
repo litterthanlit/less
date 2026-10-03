@@ -35,6 +35,8 @@ Click **Create** or **Consume** to start that kind of session. Click the same bu
 
 The menu extra shows the same ratio. Choose **Open less** to bring the window forward.
 
+Putting the Mac to sleep, shutting it down, or switching to another user stops the running session at that moment, so time away is never counted. less does not resume it when you come back.
+
 Data lives in UserDefaults under `app.less.ledger`. Nothing is sent off the machine.
 
 If less finds saved data it cannot fully read, for example sessions written by a newer build, it keeps every session it can read. It first copies the original bytes to a separate key named `app.less.ledger.backup.<unix-seconds>`, so a later save never destroys them. Backups are never overwritten or deleted by the app.
