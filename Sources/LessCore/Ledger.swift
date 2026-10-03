@@ -148,16 +148,62 @@ public enum LedgerMutations {
   }
 }
 
+private struct Lossy<T: Decodable>: Decodable {
+  let value: T?
+
+  init(from decoder: Decoder) throws {
+    value = try? T(from: decoder)
+  }
+}
+
 extension Ledger {
   public static let storageKey = "app.less.ledger"
 
-  public static func load(from defaults: UserDefaults) -> Ledger {
-    guard let data = defaults.data(forKey: storageKey),
-      let decoded = try? JSONDecoder().decode(Ledger.self, from: data)
-    else {
+  private static let formatVersion = 1
+
+  private enum CodingKeys: String, CodingKey {
+    case version
+    case sessions
+    case run
+  }
+
+  private struct Stored: Decodable {
+    let ledger: Ledger
+    let droppedAny: Bool
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: Ledger.CodingKeys.self)
+      let sessions = try container.decode([Lossy<Session>].self, forKey: .sessions)
+      let run = try container.decodeIfPresent(Lossy<Run>.self, forKey: .run)
+      let kept = sessions.compactMap(\.value)
+      ledger = Ledger(sessions: kept, run: run?.value)
+      droppedAny = kept.count != sessions.count || (run != nil && run?.value == nil)
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    self = try Stored(from: decoder).ledger
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(Self.formatVersion, forKey: .version)
+    try container.encode(sessions, forKey: .sessions)
+    try container.encodeIfPresent(run, forKey: .run)
+  }
+
+  public static func load(from defaults: UserDefaults, now: Date = Date()) -> Ledger {
+    guard let data = defaults.data(forKey: storageKey) else {
       return Ledger()
     }
-    return decoded
+    guard let stored = try? JSONDecoder().decode(Stored.self, from: data) else {
+      backUp(data, in: defaults, now: now)
+      return Ledger()
+    }
+    if stored.droppedAny {
+      backUp(data, in: defaults, now: now)
+    }
+    return stored.ledger
   }
 
   public func save(to defaults: UserDefaults) {
@@ -165,5 +211,16 @@ extension Ledger {
       return
     }
     defaults.set(data, forKey: Self.storageKey)
+  }
+
+  private static func backUp(_ data: Data, in defaults: UserDefaults, now: Date) {
+    let base = "\(storageKey).backup.\(Int(now.timeIntervalSince1970))"
+    var key = base
+    var suffix = 1
+    while defaults.object(forKey: key) != nil {
+      key = "\(base)-\(suffix)"
+      suffix += 1
+    }
+    defaults.set(data, forKey: key)
   }
 }

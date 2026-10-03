@@ -30,6 +30,39 @@ final class LedgerTests: XCTestCase {
     )!
   }
 
+  private func makeDefaults() -> UserDefaults {
+    let name = "app.less.tests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: name)!
+    defaults.removePersistentDomain(forName: name)
+    addTeardownBlock {
+      defaults.removePersistentDomain(forName: name)
+    }
+    return defaults
+  }
+
+  private func backupKeys(in defaults: UserDefaults) -> [String] {
+    defaults.dictionaryRepresentation().keys
+      .filter { $0.hasPrefix("\(Ledger.storageKey).backup.") }
+      .sorted()
+  }
+
+  private let recoveredAt = Date(timeIntervalSince1970: 1_800_000_000)
+  private let recoveredKey = "app.less.ledger.backup.1800000000"
+
+  private func ref(_ seconds: TimeInterval) -> Date {
+    Date(timeIntervalSinceReferenceDate: seconds)
+  }
+
+  private let partiallyBadJSON = #"""
+    {"sessions":[
+      {"kind":"create","start":800000000,"end":800003600},
+      {"kind":"rest","start":800007200,"end":800010800},
+      null,
+      {"kind":"consume","start":800014400},
+      {"kind":"consume","start":800018000,"end":800021600}
+    ],"run":{"kind":"create","start":800025200}}
+    """#
+
   func testEmptyLedgerSnapshotAtNoonIsZeros() {
     let now = utc(2026, 9, 15, 12)
     let snap = LedgerMutations.snapshot(ledger: Ledger(), now: now, calendar: calendar)
@@ -226,6 +259,7 @@ final class LedgerTests: XCTestCase {
     )
     original.save(to: defaults)
     XCTAssertEqual(Ledger.load(from: defaults), original)
+    XCTAssertEqual(backupKeys(in: defaults), [])
     defaults.removePersistentDomain(forName: name)
   }
 
@@ -235,7 +269,164 @@ final class LedgerTests: XCTestCase {
     defaults.removePersistentDomain(forName: name)
     defaults.set(Data("not-json".utf8), forKey: Ledger.storageKey)
     XCTAssertEqual(Ledger.load(from: defaults), Ledger())
+    XCTAssertEqual(backupKeys(in: defaults).count, 1)
     defaults.removePersistentDomain(forName: name)
+  }
+
+  func testPartiallyBadLedgerKeepsGoodSessionsAndWritesBackup() {
+    let defaults = makeDefaults()
+    let original = Data(partiallyBadJSON.utf8)
+    defaults.set(original, forKey: Ledger.storageKey)
+
+    let loaded = Ledger.load(from: defaults, now: recoveredAt)
+
+    XCTAssertEqual(
+      loaded,
+      Ledger(
+        sessions: [
+          Session(kind: .create, start: ref(800_000_000), end: ref(800_003_600)),
+          Session(kind: .consume, start: ref(800_018_000), end: ref(800_021_600)),
+        ],
+        run: Run(kind: .create, start: ref(800_025_200))
+      )
+    )
+    XCTAssertEqual(backupKeys(in: defaults), [recoveredKey])
+    XCTAssertEqual(defaults.data(forKey: recoveredKey), original)
+  }
+
+  func testUnreadableRunBecomesNilAndKeepsSessions() {
+    let defaults = makeDefaults()
+    let original = Data(
+      #"{"sessions":[{"kind":"create","start":800000000,"end":800003600}],"run":{"kind":"nap","start":1}}"#
+        .utf8
+    )
+    defaults.set(original, forKey: Ledger.storageKey)
+
+    let loaded = Ledger.load(from: defaults, now: recoveredAt)
+
+    XCTAssertEqual(
+      loaded,
+      Ledger(sessions: [Session(kind: .create, start: ref(800_000_000), end: ref(800_003_600))])
+    )
+    XCTAssertEqual(defaults.data(forKey: recoveredKey), original)
+  }
+
+  func testNullOrMissingRunIsNotADrop() {
+    for json in [
+      #"{"sessions":[],"run":null}"#,
+      #"{"sessions":[]}"#,
+    ] {
+      let defaults = makeDefaults()
+      defaults.set(Data(json.utf8), forKey: Ledger.storageKey)
+      XCTAssertEqual(Ledger.load(from: defaults, now: recoveredAt), Ledger())
+      XCTAssertEqual(backupKeys(in: defaults), [])
+    }
+  }
+
+  func testFullyCorruptDataWritesBackupWithExactBytes() {
+    let defaults = makeDefaults()
+    let original = Data([0xFF, 0xFE, 0x00, 0x7B, 0x22]) + Data("not-json".utf8)
+    defaults.set(original, forKey: Ledger.storageKey)
+
+    XCTAssertEqual(Ledger.load(from: defaults, now: recoveredAt), Ledger())
+
+    XCTAssertEqual(backupKeys(in: defaults), [recoveredKey])
+    XCTAssertEqual(defaults.data(forKey: recoveredKey), original)
+    XCTAssertEqual(defaults.data(forKey: Ledger.storageKey), original)
+  }
+
+  func testWrongShapeOfLedgerIsTreatedAsUnreadable() {
+    for json in [#"{}"#, #"{"sessions":"nope"}"#, #"[]"#, #"{"sessions":{}}"#] {
+      let defaults = makeDefaults()
+      let original = Data(json.utf8)
+      defaults.set(original, forKey: Ledger.storageKey)
+      XCTAssertEqual(Ledger.load(from: defaults, now: recoveredAt), Ledger(), json)
+      XCTAssertEqual(defaults.data(forKey: recoveredKey), original, json)
+    }
+  }
+
+  func testMissingDataLoadsEmptyLedgerWithoutBackup() {
+    let defaults = makeDefaults()
+    XCTAssertEqual(Ledger.load(from: defaults, now: recoveredAt), Ledger())
+    XCTAssertEqual(backupKeys(in: defaults), [])
+  }
+
+  func testSaveAfterRecoveryLeavesBackupIntact() {
+    let defaults = makeDefaults()
+    let original = Data(partiallyBadJSON.utf8)
+    defaults.set(original, forKey: Ledger.storageKey)
+
+    let recovered = Ledger.load(from: defaults, now: recoveredAt)
+    LedgerMutations.toggle(.consume, on: recovered, now: recoveredAt).save(to: defaults)
+
+    XCTAssertEqual(defaults.data(forKey: recoveredKey), original)
+    XCTAssertNotEqual(defaults.data(forKey: Ledger.storageKey), original)
+
+    let reloaded = Ledger.load(from: defaults, now: recoveredAt.addingTimeInterval(60))
+    XCTAssertEqual(reloaded.sessions.count, 3)
+    XCTAssertEqual(backupKeys(in: defaults), [recoveredKey])
+  }
+
+  func testTwoRecoveriesInTheSameSecondKeepTwoBackups() {
+    let defaults = makeDefaults()
+    let first = Data("not-json".utf8)
+    let second = Data("[1,2,3]".utf8)
+
+    defaults.set(first, forKey: Ledger.storageKey)
+    _ = Ledger.load(from: defaults, now: recoveredAt)
+    defaults.set(second, forKey: Ledger.storageKey)
+    _ = Ledger.load(from: defaults, now: recoveredAt)
+
+    XCTAssertEqual(backupKeys(in: defaults), [recoveredKey, "\(recoveredKey)-1"])
+    XCTAssertEqual(defaults.data(forKey: recoveredKey), first)
+    XCTAssertEqual(defaults.data(forKey: "\(recoveredKey)-1"), second)
+  }
+
+  func testRecoveriesInDifferentSecondsUseDifferentKeys() {
+    let defaults = makeDefaults()
+    let data = Data("not-json".utf8)
+    let later = recoveredAt.addingTimeInterval(5)
+
+    defaults.set(data, forKey: Ledger.storageKey)
+    _ = Ledger.load(from: defaults, now: recoveredAt)
+    _ = Ledger.load(from: defaults, now: later)
+
+    XCTAssertEqual(
+      backupKeys(in: defaults),
+      [recoveredKey, "app.less.ledger.backup.1800000005"]
+    )
+  }
+
+  func testLedgerWithoutVersionKeyStillDecodes() throws {
+    let json =
+      #"{"sessions":[{"kind":"create","start":800000000,"end":800003600}],"#
+      + #""run":{"kind":"consume","start":800007200}}"#
+    let expected = Ledger(
+      sessions: [Session(kind: .create, start: ref(800_000_000), end: ref(800_003_600))],
+      run: Run(kind: .consume, start: ref(800_007_200))
+    )
+
+    XCTAssertEqual(try JSONDecoder().decode(Ledger.self, from: Data(json.utf8)), expected)
+
+    let defaults = makeDefaults()
+    defaults.set(Data(json.utf8), forKey: Ledger.storageKey)
+    XCTAssertEqual(Ledger.load(from: defaults, now: recoveredAt), expected)
+    XCTAssertEqual(backupKeys(in: defaults), [])
+  }
+
+  func testSavedJSONCarriesVersionOne() throws {
+    let defaults = makeDefaults()
+    let ledger = Ledger(
+      sessions: [Session(kind: .create, start: ref(800_000_000), end: ref(800_003_600))]
+    )
+    ledger.save(to: defaults)
+
+    let data = try XCTUnwrap(defaults.data(forKey: Ledger.storageKey))
+    let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    XCTAssertEqual(object["version"] as? Int, 1)
+    XCTAssertEqual((object["sessions"] as? [Any])?.count, 1)
+    XCTAssertNil(object["run"])
+    XCTAssertEqual(Ledger.load(from: defaults), ledger)
   }
 
   func testNowBeforeStartCountsZeroAndDoesNotCrash() {

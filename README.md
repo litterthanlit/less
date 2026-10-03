@@ -37,6 +37,8 @@ The menu extra shows the same ratio. Choose **Open less** to bring the window fo
 
 Data lives in UserDefaults under `app.less.ledger`. Nothing is sent off the machine.
 
+If less finds saved data it cannot fully read, for example sessions written by a newer build, it keeps every session it can read. It first copies the original bytes to a separate key named `app.less.ledger.backup.<unix-seconds>`, so a later save never destroys them. Backups are never overwritten or deleted by the app.
+
 ## License
 
 MIT. See `LICENSE`.
