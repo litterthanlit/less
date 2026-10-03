@@ -82,6 +82,7 @@ struct ContentView: View {
           Rectangle()
             .stroke(Color.white, lineWidth: 1)
         }
+        .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
   }

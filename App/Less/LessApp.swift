@@ -6,7 +6,7 @@ struct LessApp: App {
   @StateObject private var model = AppModel()
 
   var body: some Scene {
-    WindowGroup("less", id: "main") {
+    Window("less", id: "main") {
       ContentView()
         .environmentObject(model)
         .frame(minWidth: 400, minHeight: 520)
@@ -30,6 +30,7 @@ private struct ExtraLabel: View {
     TimelineView(.periodic(from: .now, by: 1)) { context in
       let snap = model.snapshot(now: context.date)
       Text(title(snap))
+        .monospacedDigit()
     }
   }
 
@@ -59,7 +60,7 @@ private struct ExtraMenu: View {
     }
     Divider()
     Button("Open less") {
-      NSApp.activate(ignoringOtherApps: true)
+      NSApp.activate()
       openWindow(id: "main")
     }
   }
