@@ -31,7 +31,7 @@ swift test
 
 ## Use the app
 
-Click **Create** or **Consume** to start that kind of session. Click the same button to stop. Click the other button to close the current session and start the other kind. The large `4 : 1` line is today's create-to-consume ratio. A session that crosses midnight counts only the part after local midnight.
+Click **Create** or **Consume** to start that kind of session. Click the same button to stop. Click the other button to close the current session and start the other kind. The large line is today's create-to-consume ratio, scaled so the smaller side is `1`. `2.0 : 1` means twice as much create as consume, and `1 : 4.0` means four times as much consume as create. A ratio of 10 or more drops the decimal, as in `30 : 1`. `1 : 0` means only create so far, `0 : 1` only consume, and `0 : 0` nothing yet. A session that crosses midnight counts only the part after local midnight.
 
 The menu extra shows the same ratio. Choose **Open less** to bring the window forward.
 

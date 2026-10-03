@@ -6,15 +6,11 @@ struct ContentView: View {
   var body: some View {
     TimelineView(.periodic(from: .now, by: 1)) { context in
       let snap = model.snapshot(now: context.date)
-      let line = LedgerMutations.ratioLine(
-        createPart: snap.createPart,
-        consumePart: snap.consumePart
-      )
       ZStack {
         Color.black.ignoresSafeArea()
         VStack(spacing: 28) {
           Spacer()
-          Text(line)
+          Text(snap.ratioLine)
             .font(.system(size: 96, weight: .ultraLight))
             .foregroundStyle(.white)
             .monospacedDigit()

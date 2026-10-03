@@ -41,21 +41,15 @@ public struct Snapshot: Equatable, Sendable {
   public var create: TimeInterval
   public var consume: TimeInterval
   public var run: Run?
-  public var createPart: Int
-  public var consumePart: Int
 
-  public init(
-    create: TimeInterval,
-    consume: TimeInterval,
-    run: Run?,
-    createPart: Int,
-    consumePart: Int
-  ) {
+  public init(create: TimeInterval, consume: TimeInterval, run: Run?) {
     self.create = create
     self.consume = consume
     self.run = run
-    self.createPart = createPart
-    self.consumePart = consumePart
+  }
+
+  public var ratioLine: String {
+    LedgerMutations.ratioLine(create: create, consume: consume)
   }
 }
 
@@ -94,14 +88,7 @@ public enum LedgerMutations {
       add(run.kind, from: run.start, to: now)
     }
 
-    let (createPart, consumePart) = ratioParts(create: create, consume: consume)
-    return Snapshot(
-      create: create,
-      consume: consume,
-      run: ledger.run,
-      createPart: createPart,
-      consumePart: consumePart
-    )
+    return Snapshot(create: create, consume: consume, run: ledger.run)
   }
 
   public static func formatDuration(_ t: TimeInterval) -> String {
@@ -115,8 +102,22 @@ public enum LedgerMutations {
     return String(format: "%d:%02d", minutes, seconds)
   }
 
-  public static func ratioLine(createPart: Int, consumePart: Int) -> String {
-    "\(createPart) : \(consumePart)"
+  public static func ratioLine(create: TimeInterval, consume: TimeInterval) -> String {
+    let createSeconds = wholeSeconds(create)
+    let consumeSeconds = wholeSeconds(consume)
+    if createSeconds == 0 && consumeSeconds == 0 {
+      return "0 : 0"
+    }
+    if consumeSeconds == 0 {
+      return "1 : 0"
+    }
+    if createSeconds == 0 {
+      return "0 : 1"
+    }
+    if createSeconds >= consumeSeconds {
+      return "\(ratioText(createSeconds, over: consumeSeconds)) : 1"
+    }
+    return "1 : \(ratioText(consumeSeconds, over: createSeconds))"
   }
 
   private static func overlap(
@@ -130,31 +131,20 @@ public enum LedgerMutations {
     return max(0, hi.timeIntervalSince(lo))
   }
 
-  private static func ratioParts(create: TimeInterval, consume: TimeInterval) -> (Int, Int) {
-    let createSeconds = Int(create.rounded(.towardZero))
-    let consumeSeconds = Int(consume.rounded(.towardZero))
-    if createSeconds == 0 && consumeSeconds == 0 {
-      return (0, 0)
+  private static func wholeSeconds(_ t: TimeInterval) -> Int {
+    guard t > 0 else {
+      return 0
     }
-    if createSeconds > 0 && consumeSeconds == 0 {
-      return (1, 0)
-    }
-    if createSeconds == 0 && consumeSeconds > 0 {
-      return (0, 1)
-    }
-    let g = gcd(createSeconds, consumeSeconds)
-    return (createSeconds / g, consumeSeconds / g)
+    // keeps Int(_:) from trapping on absurd or infinite input
+    return Int(min(t, 1e12))
   }
 
-  private static func gcd(_ a: Int, _ b: Int) -> Int {
-    var a = abs(a)
-    var b = abs(b)
-    while b != 0 {
-      let remainder = a % b
-      a = b
-      b = remainder
+  private static func ratioText(_ larger: Int, over smaller: Int) -> String {
+    let tenths = (larger * 20 + smaller) / (2 * smaller)
+    if tenths >= 100 {
+      return String((larger * 2 + smaller) / (2 * smaller))
     }
-    return max(a, 1)
+    return "\(tenths / 10).\(tenths % 10)"
   }
 }
 

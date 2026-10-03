@@ -35,8 +35,7 @@ final class LedgerTests: XCTestCase {
     let snap = LedgerMutations.snapshot(ledger: Ledger(), now: now, calendar: calendar)
     XCTAssertEqual(snap.create, 0)
     XCTAssertEqual(snap.consume, 0)
-    XCTAssertEqual(snap.createPart, 0)
-    XCTAssertEqual(snap.consumePart, 0)
+    XCTAssertEqual(snap.ratioLine, "0 : 0")
     XCTAssertNil(snap.run)
   }
 
@@ -53,11 +52,10 @@ final class LedgerTests: XCTestCase {
     )
     XCTAssertEqual(snap.create, 7200)
     XCTAssertEqual(snap.consume, 0)
-    XCTAssertEqual(snap.createPart, 1)
-    XCTAssertEqual(snap.consumePart, 0)
+    XCTAssertEqual(snap.ratioLine, "1 : 0")
   }
 
-  func testOneHourConsumeAndTwoHourCreatePartsTwoToOne() {
+  func testOneHourConsumeAndTwoHourCreateIsTwoToOne() {
     let ledger = Ledger(
       sessions: [
         Session(kind: .consume, start: utc(2026, 9, 15, 8), end: utc(2026, 9, 15, 9)),
@@ -71,8 +69,7 @@ final class LedgerTests: XCTestCase {
     )
     XCTAssertEqual(snap.create, 7200)
     XCTAssertEqual(snap.consume, 3600)
-    XCTAssertEqual(snap.createPart, 2)
-    XCTAssertEqual(snap.consumePart, 1)
+    XCTAssertEqual(snap.ratioLine, "2.0 : 1")
   }
 
   func testToggleCreateStartsThenClosesWithExpectedDuration() {
@@ -101,8 +98,7 @@ final class LedgerTests: XCTestCase {
     let closed = LedgerMutations.snapshot(ledger: ledger, now: t1, calendar: calendar)
     XCTAssertEqual(closed.create, 1800)
     XCTAssertEqual(closed.consume, 0)
-    XCTAssertEqual(closed.createPart, 1)
-    XCTAssertEqual(closed.consumePart, 0)
+    XCTAssertEqual(closed.ratioLine, "1 : 0")
   }
 
   func testToggleConsumeWhileCreateIsRunningSwitchesKinds() {
@@ -119,8 +115,7 @@ final class LedgerTests: XCTestCase {
     let snap = LedgerMutations.snapshot(ledger: ledger, now: utc(2026, 9, 15, 14), calendar: calendar)
     XCTAssertEqual(snap.create, 3600)
     XCTAssertEqual(snap.consume, 3600)
-    XCTAssertEqual(snap.createPart, 1)
-    XCTAssertEqual(snap.consumePart, 1)
+    XCTAssertEqual(snap.ratioLine, "1.0 : 1")
     XCTAssertEqual(snap.run?.kind, Kind.consume)
   }
 
@@ -137,8 +132,7 @@ final class LedgerTests: XCTestCase {
     )
     XCTAssertEqual(snap.create, 3600)
     XCTAssertEqual(snap.consume, 0)
-    XCTAssertEqual(snap.createPart, 1)
-    XCTAssertEqual(snap.consumePart, 0)
+    XCTAssertEqual(snap.ratioLine, "1 : 0")
   }
 
   func testFormatDurationLiteralValues() {
@@ -148,8 +142,64 @@ final class LedgerTests: XCTestCase {
     XCTAssertEqual(LedgerMutations.formatDuration(-1), "0:00")
   }
 
-  func testRatioLineHasSpacesAroundColon() {
-    XCTAssertEqual(LedgerMutations.ratioLine(createPart: 4, consumePart: 1), "4 : 1")
+  func testRatioLineBothZero() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 0, consume: 0), "0 : 0")
+  }
+
+  func testRatioLineOnlyCreateOrOnlyConsume() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 90, consume: 0), "1 : 0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 0, consume: 90), "0 : 1")
+  }
+
+  func testRatioLineShowsSmallerSideAsOne() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 15127, consume: 3513), "4.3 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1501, consume: 6000), "1 : 4.0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 3600, consume: 3600), "1.0 : 1")
+  }
+
+  func testRatioLineIsReadableOneSecondOffARoundNumber() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 7200, consume: 3600), "2.0 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 7201, consume: 3600), "2.0 : 1")
+    let ledger = Ledger(
+      sessions: [
+        Session(kind: .consume, start: utc(2026, 9, 15, 8), end: utc(2026, 9, 15, 9)),
+        Session(kind: .create, start: utc(2026, 9, 15, 10), end: utc(2026, 9, 15, 12, 0, 1)),
+      ]
+    )
+    let snap = LedgerMutations.snapshot(
+      ledger: ledger,
+      now: utc(2026, 9, 15, 13),
+      calendar: calendar
+    )
+    XCTAssertEqual(snap.create, 7201)
+    XCTAssertEqual(snap.ratioLine, "2.0 : 1")
+  }
+
+  func testRatioLineRoundsToOneDecimal() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1049, consume: 1000), "1.0 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1050, consume: 1000), "1.1 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1000, consume: 3000), "1 : 3.0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1000, consume: 2999), "1 : 3.0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1000, consume: 2951), "1 : 3.0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1000, consume: 2949), "1 : 2.9")
+  }
+
+  func testRatioLineDropsTheDecimalOnceTheRoundedValueReachesTen() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 36000, consume: 1200), "30 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1200, consume: 36000), "1 : 30")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 10000, consume: 1000), "10 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 9996, consume: 1000), "10 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 1000, consume: 9996), "1 : 10")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 9949, consume: 1000), "9.9 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 10460, consume: 1000), "10 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 10500, consume: 1000), "11 : 1")
+  }
+
+  func testRatioLineUsesWholeTruncatedSeconds() {
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 0.9, consume: 0), "0 : 0")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 0.9, consume: 5.9), "0 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: 2.9, consume: 2.1), "1.0 : 1")
+    XCTAssertEqual(LedgerMutations.ratioLine(create: -5, consume: 10), "0 : 1")
   }
 
   func testRunningSessionFromYesterdayCountsOnlyToday() {
@@ -161,8 +211,7 @@ final class LedgerTests: XCTestCase {
     )
     XCTAssertEqual(snap.create, 0)
     XCTAssertEqual(snap.consume, 3600)
-    XCTAssertEqual(snap.createPart, 0)
-    XCTAssertEqual(snap.consumePart, 1)
+    XCTAssertEqual(snap.ratioLine, "0 : 1")
   }
 
   func testUserDefaultsRoundTripPreservesLedger() {
@@ -201,7 +250,6 @@ final class LedgerTests: XCTestCase {
     let snap = LedgerMutations.snapshot(ledger: closed, now: start, calendar: calendar)
     XCTAssertEqual(snap.create, 0)
     XCTAssertEqual(snap.consume, 0)
-    XCTAssertEqual(snap.createPart, 0)
-    XCTAssertEqual(snap.consumePart, 0)
+    XCTAssertEqual(snap.ratioLine, "0 : 0")
   }
 }

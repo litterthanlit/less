@@ -34,14 +34,10 @@ private struct ExtraLabel: View {
   }
 
   private func title(_ snap: Snapshot) -> String {
-    let line = LedgerMutations.ratioLine(
-      createPart: snap.createPart,
-      consumePart: snap.consumePart
-    )
     if snap.run != nil {
-      return "● \(line)"
+      return "● \(snap.ratioLine)"
     }
-    return line
+    return snap.ratioLine
   }
 }
 
@@ -50,9 +46,10 @@ private struct ExtraMenu: View {
   @Environment(\.openWindow) private var openWindow
 
   var body: some View {
-    Text(ratioLine)
-    Text("create \(createDuration)")
-    Text("consume \(consumeDuration)")
+    let snap = model.snapshot(now: Date())
+    Text(snap.ratioLine)
+    Text("create \(LedgerMutations.formatDuration(snap.create))")
+    Text("consume \(LedgerMutations.formatDuration(snap.consume))")
     Divider()
     Button(model.createButtonTitle) {
       model.toggle(.create)
@@ -65,21 +62,5 @@ private struct ExtraMenu: View {
       NSApp.activate(ignoringOtherApps: true)
       openWindow(id: "main")
     }
-  }
-
-  private var snap: Snapshot {
-    model.snapshot(now: Date())
-  }
-
-  private var ratioLine: String {
-    LedgerMutations.ratioLine(createPart: snap.createPart, consumePart: snap.consumePart)
-  }
-
-  private var createDuration: String {
-    LedgerMutations.formatDuration(snap.create)
-  }
-
-  private var consumeDuration: String {
-    LedgerMutations.formatDuration(snap.consume)
   }
 }
