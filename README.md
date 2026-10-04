@@ -41,6 +41,41 @@ Data lives in UserDefaults under `app.less.ledger`. Nothing is sent off the mach
 
 If less finds saved data it cannot fully read, for example sessions written by a newer build, it keeps every session it can read. It first copies the original bytes to a separate key named `app.less.ledger.backup.<unix-seconds>`, so a later save never destroys them. Backups are never overwritten or deleted by the app.
 
+## Track X tabs
+
+less can count the X tabs you open each day in Chrome, Arc, Brave or another Chromium browser, and ask whether each one was useful. Three pieces take part:
+
+- **The `less for X` extension** in `Extensions/chromium` watches tabs. A tab that lands on x.com or twitter.com starts a visit. The visit ends when the tab closes or goes to another site. Moving around inside X is the same visit.
+- **The `less-bridge` helper**, built into `Less.app/Contents/MacOS/`. The browser starts it to pass each batch of visits to less through a shared App Group folder.
+- **less**, which shows today's count under the ratio. **Rate** opens **X today**, a list of today's visits, newest first, each with **Useful** and **Not** buttons. Clicking the chosen answer again clears it.
+
+### Set it up once
+
+1. In Xcode, select a team under **Signing & Capabilities** for both the **Less** and **LessBridge** targets. A free Personal Team works. The App Group needs a signed build, and an unsigned build shows "sign less to connect the extension".
+2. Build and run less. Copy `Less.app` to `/Applications`, or note its path in Xcode under **Product > Show Build Folder**.
+3. Run `scripts/install-chromium-bridge.sh`. If less is not in `/Applications`, pass the path to `Less.app`. The script registers the helper with every Chromium browser it finds. Run it again whenever `Less.app` moves. `--uninstall` removes the registrations.
+4. In the browser, open `chrome://extensions`, `arc://extensions` or `brave://extensions`. Turn on **Developer mode**, choose **Load unpacked**, and pick `Extensions/chromium`. Its popup should say **Connected to less**.
+
+### Rating
+
+When an X tab closes, less posts a notification: **Was that X tab useful?** Choose **Useful** or **Not useful** under **Options**. If several tabs close at once, one notification points you to the review window instead. Tabs that closed more than 10 minutes before less saw them are never announced, but they still appear in the review window. Turn notifications off with **Ask after each X tab** in the menu extra.
+
+A visit counts on the day it was opened. The menu extra shows today's count and how many visits are still to rate.
+
+### What is stored
+
+Each visit keeps an id, the open and close times, the X path such as `/home` or `/someone/status/123`, the page title, and your answer. Query strings, fragments and every other site are dropped before anything is written, and nothing leaves the Mac. Visits live in UserDefaults under `app.less.tabs`, with the same versioned format and `app.less.tabs.backup.<unix-seconds>` backups as the ledger.
+
+If less is not running, the helper still accepts visits and less reads them on its next launch. If the helper is unreachable, the extension keeps up to 5000 events and retries every 5 minutes. A resent event is recognized and never counted twice.
+
+After a browser restart, a visit that was open is closed at the last time the extension saw it, within about 5 minutes. A restored X tab counts as a new visit.
+
+### Test the extension
+
+```
+cd Extensions/chromium && node --test
+```
+
 ## License
 
 MIT. See `LICENSE`.
