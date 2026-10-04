@@ -133,6 +133,17 @@ final class TabLogTests: XCTestCase {
     XCTAssertEqual(visit.duration(now: utc(2026, 10, 4, 9, 2)), 120)
   }
 
+  func testFormatStay() {
+    XCTAssertEqual(TabLogMutations.formatStay(0), "<1 min")
+    XCTAssertEqual(TabLogMutations.formatStay(59), "<1 min")
+    XCTAssertEqual(TabLogMutations.formatStay(60), "1 min")
+    XCTAssertEqual(TabLogMutations.formatStay(359), "5 min")
+    XCTAssertEqual(TabLogMutations.formatStay(3600), "1 h")
+    XCTAssertEqual(TabLogMutations.formatStay(3900), "1 h 5 min")
+    XCTAssertEqual(TabLogMutations.formatStay(-5), "<1 min")
+    XCTAssertEqual(TabLogMutations.formatStay(.infinity), "277777 h 46 min")
+  }
+
   func testRateAndUnrate() {
     let log = TabLogMutations.apply([open(1, utc(2026, 10, 4, 9))], to: TabLog()).log
     let rated = TabLogMutations.rate(uuid(1), .notUseful, on: log)

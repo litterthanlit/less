@@ -30,10 +30,24 @@ final class BridgeTests: XCTestCase {
           id: id,
           at: Date(timeIntervalSince1970: 1_790_000_000.123),
           url: "https://x.com/home",
-          title: "Home / X"
+          title: "Home"
         )
       ]
     )
+  }
+
+  func testRequestStripsQueriesTitlesAndOtherSites() throws {
+    let json = #"""
+      {"v":1,"events":[
+        {"type":"open","id":"6f1c2a3b-0000-4000-8000-000000000001","at":1790000000000,
+         "url":"https://mobile.twitter.com/someone/status/5?s=20#top","title":"(4) Post / X"},
+        {"type":"close","id":"6f1c2a3b-0000-4000-8000-000000000001","at":1790000000000,
+         "url":"https://mail.example/inbox?token=secret"}
+      ]}
+      """#
+    let events = try Bridge.decodeRequest(Data(json.utf8))
+    XCTAssertEqual(events.map(\.url), ["https://x.com/someone/status/5", nil])
+    XCTAssertEqual(events.map(\.title), ["Post", nil])
   }
 
   func testRequestKeepsReadableEventsAndDropsBadOnes() throws {

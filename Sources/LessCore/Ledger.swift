@@ -159,14 +159,6 @@ public enum LedgerMutations {
   }
 }
 
-struct Lossy<T: Decodable>: Decodable {
-  let value: T?
-
-  init(from decoder: Decoder) throws {
-    value = try? T(from: decoder)
-  }
-}
-
 extension Ledger {
   public static let storageKey = "app.less.ledger"
 

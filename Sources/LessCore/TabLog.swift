@@ -136,6 +136,19 @@ public enum TabLogMutations {
     return log
   }
 
+  // "<1 min", "6 min", "1 h 5 min": how long a tab stayed on X, at a glance
+  public static func formatStay(_ t: TimeInterval) -> String {
+    let minutes = Int(min(max(0, t), 1e9) / 60)
+    if minutes < 1 {
+      return "<1 min"
+    }
+    if minutes < 60 {
+      return "\(minutes) min"
+    }
+    let rest = minutes % 60
+    return rest == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(rest) min"
+  }
+
   // a visit belongs to the local day it was opened on
   public static func day(log: TabLog, now: Date, calendar: Calendar) -> TabDay {
     let dayStart = calendar.startOfDay(for: now)

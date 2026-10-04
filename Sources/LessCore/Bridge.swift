@@ -34,6 +34,15 @@ public struct BridgeReply: Codable, Equatable, Sendable {
   }
 }
 
+// decodes what it can and keeps nil for the rest, so one bad entry never sinks a list
+struct Lossy<T: Decodable>: Decodable {
+  let value: T?
+
+  init(from decoder: Decoder) throws {
+    value = try? T(from: decoder)
+  }
+}
+
 public enum Bridge {
   public static let hostName = "app.less.bridge"
   public static let protocolVersion = 1
@@ -72,7 +81,15 @@ public enum Bridge {
     guard request.v == protocolVersion else {
       throw RequestError.unsupportedVersion(request.v)
     }
-    return (request.events ?? []).compactMap(\.value)
+    return (request.events ?? []).compactMap(\.value).map(sanitized)
+  }
+
+  // nothing but an X origin and path, and a tidy title, ever reaches the disk
+  public static func sanitized(_ event: BridgeEvent) -> BridgeEvent {
+    var event = event
+    event.url = xPath(of: event.url).map { "https://x.com\($0)" }
+    event.title = cleanTitle(event.title)
+    return event
   }
 
   // native messaging frames each message with a 32-bit length in native (little-endian on Mac) order
