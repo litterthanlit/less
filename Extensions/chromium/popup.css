@@ -1,0 +1,91 @@
+:root {
+  color-scheme: dark;
+  --bg: #000;
+  --fg: #fff;
+  --muted: rgba(255, 255, 255, 0.45);
+  --faint: rgba(255, 255, 255, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  width: 280px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  padding: 24px 24px 22px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 200;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.count {
+  margin-top: 6px;
+  font-size: 44px;
+  font-weight: 200;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+#unit {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--muted);
+}
+
+.sub,
+.hint {
+  font-weight: 200;
+  color: var(--muted);
+}
+
+.rule {
+  height: 1px;
+  margin: 18px 0 14px;
+  background: var(--faint);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 300;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--fg);
+  border-radius: 50%;
+  transition: background-color 200ms ease;
+}
+
+.status[data-ok="true"] .dot {
+  background: var(--fg);
+}
+
+.hint {
+  margin-top: 6px;
+}
+
+code {
+  font: 11px ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    transition: none;
+  }
+}

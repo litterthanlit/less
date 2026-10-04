@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>less: X today</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main aria-labelledby="label">
+      <p class="label" id="label">X TODAY</p>
+      <p class="count"><span id="count">0</span> <span id="unit">tabs</span></p>
+      <p class="sub">opened in this browser</p>
+      <div class="rule" role="presentation"></div>
+      <p class="status" id="status" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Checking less…</span>
+      </p>
+      <p class="hint" id="hint">Rate each tab in less.</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

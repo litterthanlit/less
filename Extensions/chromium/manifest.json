@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "less for X",
+  "version": "1.0.0",
+  "description": "Counts the X tabs you open each day and hands them to the less Mac app, where you rate whether each was useful.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqCPYXox2YcH+OYfLMyChVLN26IJJnuzSskiHx6VxJzwhofww3505uWGTnUC7qfAz1CJXQRCbRlr3XQu0+aXuwLZtu1I+uADZKktyVrGGyTu/jy8YX7vfuonLn1r5AlM7khgRzBZnNuCPZkpZsZPN9gwqiVxu+yWTL5f0Mie3ov/MvYn+MChHd7ss8FredYkni+9OzABagl4rozR0t72YnrDy6r5juzN44pzJ4G/z4568VKCar+vJ48458xalM25hvbNfMtHwfuZpdPSysHqxzGtNCmaqmd4J8RXMtF5WIm0nz5v93A2Kzo/TBykemzN+E5achpDNlOYNFNx/tD7eTwIDAQAB",
+  "minimum_chrome_version": "116",
+  "permissions": ["tabs", "nativeMessaging", "storage", "alarms"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "less: X today",
+    "default_popup": "popup.html"
+  }
+}
