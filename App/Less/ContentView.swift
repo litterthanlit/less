@@ -41,7 +41,7 @@ struct ContentView: View {
             .font(.system(size: 13, weight: .ultraLight))
             .foregroundStyle(Color.white.opacity(0.45))
             .padding(.top, 4)
-          tabStrip(model.tabDay(now: context.date))
+          tabStrip(model.tabDay(now: context.date), limit: model.tabLimit)
             .padding(.top, 20)
           Spacer()
         }
@@ -92,8 +92,10 @@ struct ContentView: View {
   }
 
   // today's X tabs sit under the ratio: present, but quieter than it
-  private func tabStrip(_ day: TabDay) -> some View {
-    VStack(spacing: 18) {
+  private func tabStrip(_ day: TabDay, limit: Int?) -> some View {
+    let over = TabLimit.isOver(opened: day.opened, limit: limit)
+    let count = TabLimit.countLine(opened: day.opened, limit: limit)
+    return VStack(spacing: 18) {
       Rectangle()
         .fill(Color.white.opacity(0.12))
         .frame(height: 1)
@@ -103,15 +105,16 @@ struct ContentView: View {
             .font(.system(size: 11, weight: .ultraLight))
             .tracking(1.5)
             .foregroundStyle(Color.white.opacity(0.4))
-          Text(day.countLine)
-            .font(.system(size: 20, weight: .light).monospacedDigit())
+          // past the limit the count takes the same semibold a leading CREATE or CONSUME gets
+          Text(count)
+            .font(.system(size: 20, weight: over ? .semibold : .light).monospacedDigit())
             .foregroundStyle(.white)
           Text(tabHint(day))
             .font(.system(size: 13, weight: .ultraLight))
             .foregroundStyle(Color.white.opacity(0.45))
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("X today: \(day.countLine). \(tabHint(day))")
+        .accessibilityLabel("X today: \(count)\(over ? ", past your limit" : ""). \(tabHint(day))")
         Spacer(minLength: 0)
         Button {
           NSApp.activate()

@@ -62,6 +62,12 @@ When an X tab closes, less posts a notification: **Was that X tab useful?** Choo
 
 A visit counts on the day it was opened. The menu extra shows today's count and how many visits are still to rate.
 
+### Daily limit
+
+less gives X a daily budget, 10 tabs to start. Change it or turn it off under **Daily X limit** in the menu extra. Choices are 5, 10, 15, 20 and 30 tabs.
+
+After the first X tab of the day, the menu bar shows the count next to the ratio, as in `X 7/10`. Reaching the limit is fine. The next tab after it turns the count **bold**, as in **`X 11/10`**, and it stays bold for the rest of the day. The main window says `11 tabs · 1 over` in semibold, matching how a leading CREATE or CONSUME is shown. With the limit off, the menu bar shows a plain `X 7` that never turns bold. The limit is stored under `app.less.tabs.limit`, and `0` means off.
+
 ### What is stored
 
 Each visit keeps an id, the open and close times, the X path such as `/home` or `/someone/status/123`, the page title, and your answer. Query strings, fragments and every other site are dropped before anything is written, and nothing leaves the Mac. Visits live in UserDefaults under `app.less.tabs`, with the same versioned format and `app.less.tabs.backup.<unix-seconds>` backups as the ledger.

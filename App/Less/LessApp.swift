@@ -37,8 +37,17 @@ private struct ExtraLabel: View {
   var body: some View {
     TimelineView(.periodic(from: .now, by: 1)) { context in
       let snap = model.snapshot(now: context.date)
-      Text(title(snap))
-        .monospacedDigit()
+      let opened = model.tabDay(now: context.date).opened
+      if let x = TabLimit.menuBarText(opened: opened, limit: model.tabLimit) {
+        let over = TabLimit.isOver(opened: opened, limit: model.tabLimit)
+        Image(nsImage: MenuBarText.image([(title(snap), .regular), ("  \(x)", over ? .bold : .regular)]))
+          .accessibilityLabel(
+            "\(title(snap)). \(TabLimit.countLine(opened: opened, limit: model.tabLimit)) on X today"
+          )
+      } else {
+        Text(title(snap))
+          .monospacedDigit()
+      }
     }
     // the menu bar label always exists, so it opens the review for notification taps
     .onChange(of: model.reviewRequests) {
@@ -73,10 +82,23 @@ private struct ExtraMenu: View {
     }
     Divider()
     let day = model.tabDay(now: Date())
-    Text(day.unrated > 0 ? "X tabs today: \(day.opened) · \(day.unrated) to rate" : "X tabs today: \(day.opened)")
+    let count = TabLimit.countLine(opened: day.opened, limit: model.tabLimit)
+    Text(day.unrated > 0 ? "X today: \(count) · \(day.unrated) to rate" : "X today: \(count)")
     Button("Review X tabs…") {
       NSApp.activate()
       openWindow(id: "x-review")
+    }
+    Picker(
+      "Daily X limit",
+      selection: Binding(
+        get: { model.tabLimit ?? 0 },
+        set: { model.tabLimit = $0 > 0 ? $0 : nil }
+      )
+    ) {
+      Text("Off").tag(0)
+      ForEach(TabLimit.choices, id: \.self) { limit in
+        Text("\(limit) tabs").tag(limit)
+      }
     }
     Toggle(
       "Ask after each X tab",
@@ -90,5 +112,35 @@ private struct ExtraMenu: View {
       NSApp.activate()
       openWindow(id: "main")
     }
+  }
+}
+
+// SwiftUI drops font weight in menu bar labels, so the label is drawn as a template
+// image; macOS still tints it for light and dark menu bars
+private enum MenuBarText {
+  static func image(_ parts: [(String, NSFont.Weight)]) -> NSImage {
+    let text = NSMutableAttributedString()
+    for (string, weight) in parts {
+      text.append(
+        NSAttributedString(
+          string: string,
+          attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: weight),
+            .foregroundColor: NSColor.black,
+          ]
+        )
+      )
+    }
+    let drawn = NSAttributedString(attributedString: text)
+    let size = drawn.size()
+    let image = NSImage(
+      size: NSSize(width: ceil(size.width), height: ceil(size.height)),
+      flipped: false
+    ) { _ in
+      drawn.draw(at: .zero)
+      return true
+    }
+    image.isTemplate = true
+    return image
   }
 }

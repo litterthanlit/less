@@ -8,6 +8,12 @@ final class AppModel: ObservableObject {
   @Published private(set) var tabLog: TabLog
   // bumps whenever something outside a window, like a notification, asks for the review
   @Published private(set) var reviewRequests = 0
+  // the daily X tab budget; nil when the user turned it off
+  @Published var tabLimit: Int? {
+    didSet {
+      TabLimit.save(tabLimit, to: defaults)
+    }
+  }
 
   private let defaults: UserDefaults
   private let prompt: TabPrompt
@@ -18,6 +24,7 @@ final class AppModel: ObservableObject {
     self.defaults = defaults
     ledger = Ledger.load(from: defaults)
     tabLog = TabLog.load(from: defaults)
+    tabLimit = TabLimit.load(from: defaults)
     prompt = TabPrompt(defaults: defaults)
     stopWhenTheMacLeaves()
     prompt.onRate = { [weak self] id, verdict in

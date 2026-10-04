@@ -10,7 +10,7 @@ struct TabReviewView: View {
       ZStack {
         Color.black.ignoresSafeArea()
         VStack(alignment: .leading, spacing: 0) {
-          header(day)
+          header(day, limit: model.tabLimit)
             .padding(.horizontal, 28)
             .padding(.top, 28)
             .padding(.bottom, 22)
@@ -33,14 +33,16 @@ struct TabReviewView: View {
     .preferredColorScheme(.dark)
   }
 
-  private func header(_ day: TabDay) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
+  private func header(_ day: TabDay, limit: Int?) -> some View {
+    let over = TabLimit.isOver(opened: day.opened, limit: limit)
+    let count = TabLimit.countLine(opened: day.opened, limit: limit)
+    return VStack(alignment: .leading, spacing: 8) {
       Text("X TODAY")
         .font(.system(size: 11, weight: .ultraLight))
         .tracking(1.5)
         .foregroundStyle(Color.white.opacity(0.4))
-      Text(day.countLine)
-        .font(.system(size: 44, weight: .ultraLight))
+      Text(count)
+        .font(.system(size: 44, weight: over ? .regular : .ultraLight))
         .monospacedDigit()
         .foregroundStyle(.white)
       Text(day.breakdownLine)
@@ -48,7 +50,7 @@ struct TabReviewView: View {
         .foregroundStyle(Color.white.opacity(0.45))
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("X today: \(day.countLine). \(day.breakdownLine)")
+    .accessibilityLabel("X today: \(count)\(over ? ", past your limit" : ""). \(day.breakdownLine)")
   }
 
   private var emptyState: some View {

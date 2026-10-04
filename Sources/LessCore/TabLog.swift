@@ -57,6 +57,10 @@ public struct TabDay: Equatable, Sendable {
   public var unrated: Int { visits.filter { $0.verdict == nil }.count }
 
   public var countLine: String {
+    Self.countLine(opened)
+  }
+
+  static func countLine(_ opened: Int) -> String {
     opened == 1 ? "1 tab" : "\(opened) tabs"
   }
 
@@ -212,5 +216,54 @@ extension TabLog {
       return
     }
     defaults.set(data, forKey: Self.storageKey)
+  }
+}
+
+// a daily budget for X tabs; nil means no limit
+public enum TabLimit {
+  public static let storageKey = "app.less.tabs.limit"
+  public static let choices = [5, 10, 15, 20, 30]
+  public static let defaultLimit = 10
+
+  // nothing stored yet means the default; a stored 0 or less means the user turned it off
+  public static func load(from defaults: UserDefaults) -> Int? {
+    guard let stored = defaults.object(forKey: storageKey) as? Int else {
+      return defaultLimit
+    }
+    return stored > 0 ? stored : nil
+  }
+
+  public static func save(_ limit: Int?, to defaults: UserDefaults) {
+    defaults.set(max(0, limit ?? 0), forKey: storageKey)
+  }
+
+  // reaching the limit is fine; the next tab past it is the one that counts as over
+  public static func isOver(opened: Int, limit: Int?) -> Bool {
+    guard let limit else {
+      return false
+    }
+    return opened > limit
+  }
+
+  // "7 of 10 tabs", then "12 tabs · 2 over" once past it
+  public static func countLine(opened: Int, limit: Int?) -> String {
+    guard let limit else {
+      return TabDay.countLine(opened)
+    }
+    if opened > limit {
+      return "\(TabDay.countLine(opened)) · \(opened - limit) over"
+    }
+    return "\(opened) of \(limit) tabs"
+  }
+
+  // the menu bar stays quiet until the first X tab of the day
+  public static func menuBarText(opened: Int, limit: Int?) -> String? {
+    guard opened > 0 else {
+      return nil
+    }
+    guard let limit else {
+      return "X \(opened)"
+    }
+    return "X \(opened)/\(limit)"
   }
 }
