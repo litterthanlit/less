@@ -1,7 +1,9 @@
+import AppKit
 import SwiftUI
 
 struct ContentView: View {
   @EnvironmentObject private var model: AppModel
+  @Environment(\.openWindow) private var openWindow
 
   var body: some View {
     TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -39,6 +41,8 @@ struct ContentView: View {
             .font(.system(size: 13, weight: .ultraLight))
             .foregroundStyle(Color.white.opacity(0.45))
             .padding(.top, 4)
+          tabStrip(model.tabDay(now: context.date))
+            .padding(.top, 20)
           Spacer()
         }
         .padding(.horizontal, 36)
@@ -85,6 +89,56 @@ struct ContentView: View {
         .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
+  }
+
+  // today's X tabs sit under the ratio: present, but quieter than it
+  private func tabStrip(_ day: TabDay) -> some View {
+    VStack(spacing: 18) {
+      Rectangle()
+        .fill(Color.white.opacity(0.12))
+        .frame(height: 1)
+      HStack(alignment: .center, spacing: 16) {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("X TODAY")
+            .font(.system(size: 11, weight: .ultraLight))
+            .tracking(1.5)
+            .foregroundStyle(Color.white.opacity(0.4))
+          Text(day.countLine)
+            .font(.system(size: 20, weight: .light).monospacedDigit())
+            .foregroundStyle(.white)
+          Text(tabHint(day))
+            .font(.system(size: 13, weight: .ultraLight))
+            .foregroundStyle(Color.white.opacity(0.45))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("X today: \(day.countLine). \(tabHint(day))")
+        Spacer(minLength: 0)
+        Button {
+          NSApp.activate()
+          openWindow(id: "x-review")
+        } label: {
+          Text(day.unrated > 0 ? "Rate \(day.unrated)" : "Review")
+            .font(.system(size: 14, weight: .regular))
+            .frame(minWidth: 92, minHeight: 36)
+            .padding(.horizontal, 6)
+            .foregroundStyle(.white)
+            .overlay {
+              Rectangle()
+                .stroke(Color.white.opacity(day.unrated > 0 ? 1 : 0.4), lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(day.unrated > 0 ? "Rate \(day.unrated) X tabs" : "Review X tabs")
+      }
+    }
+  }
+
+  private func tabHint(_ day: TabDay) -> String {
+    if day.opened == 0 && !model.bridgeReady {
+      return "sign less to connect the extension"
+    }
+    return day.breakdownLine
   }
 
   private func statusText(_ run: Run?) -> String {

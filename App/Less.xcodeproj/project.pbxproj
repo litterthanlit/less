@@ -12,7 +12,40 @@
 		A01F00000000000000000003 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000004 /* AppModel.swift */; };
 		A01F00000000000000000004 /* Ledger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000007 /* Ledger.swift */; };
 		A01F00000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000006 /* Assets.xcassets */; };
+		A01F00000000000000000006 /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000008 /* Bridge.swift */; };
+		A01F00000000000000000007 /* TabLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000009 /* TabLog.swift */; };
+		A01F00000000000000000008 /* TabReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000A /* TabReviewView.swift */; };
+		A01F00000000000000000009 /* TabPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000B /* TabPrompt.swift */; };
+		A01F0000000000000000000A /* GroupContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000C /* GroupContainer.swift */; };
+		A01F0000000000000000000B /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000D /* main.swift */; };
+		A01F0000000000000000000C /* Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F00000000000000000008 /* Bridge.swift */; };
+		A01F0000000000000000000D /* GroupContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000C /* GroupContainer.swift */; };
+		A01F0000000000000000000E /* less-bridge in Embed Bridge */ = {isa = PBXBuildFile; fileRef = A02F0000000000000000000F /* less-bridge */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A09F00000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A04F00000000000000000002 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A04F00000000000000000003;
+			remoteInfo = LessBridge;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A05F00000000000000000006 /* Embed Bridge */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				A01F0000000000000000000E /* less-bridge in Embed Bridge */,
+			);
+			name = "Embed Bridge";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A02F00000000000000000001 /* Less.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Less.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -22,7 +55,24 @@
 		A02F00000000000000000005 /* Less.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Less.entitlements; sourceTree = "<group>"; };
 		A02F00000000000000000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A02F00000000000000000007 /* Ledger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ledger.swift; sourceTree = "<group>"; };
+		A02F00000000000000000008 /* Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bridge.swift; sourceTree = "<group>"; };
+		A02F00000000000000000009 /* TabLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabLog.swift; sourceTree = "<group>"; };
+		A02F0000000000000000000A /* TabReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabReviewView.swift; sourceTree = "<group>"; };
+		A02F0000000000000000000B /* TabPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabPrompt.swift; sourceTree = "<group>"; };
+		A02F0000000000000000000C /* GroupContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupContainer.swift; sourceTree = "<group>"; };
+		A02F0000000000000000000D /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A02F0000000000000000000E /* LessBridge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LessBridge.entitlements; sourceTree = "<group>"; };
+		A02F0000000000000000000F /* less-bridge */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "less-bridge"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A05F00000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 
 /* Begin PBXFrameworksBuildPhase section */
 		A05F00000000000000000003 /* Frameworks */ = {
@@ -40,6 +90,8 @@
 			children = (
 				A03F00000000000000000003 /* Less */,
 				A03F00000000000000000004 /* LessCore */,
+				A03F00000000000000000006 /* LessBridge */,
+				A03F00000000000000000005 /* Shared */,
 				A03F00000000000000000002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +100,7 @@
 			isa = PBXGroup;
 			children = (
 				A02F00000000000000000001 /* Less.app */,
+				A02F0000000000000000000F /* less-bridge */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -58,6 +111,8 @@
 				A02F00000000000000000002 /* LessApp.swift */,
 				A02F00000000000000000003 /* ContentView.swift */,
 				A02F00000000000000000004 /* AppModel.swift */,
+				A02F0000000000000000000A /* TabReviewView.swift */,
+				A02F0000000000000000000B /* TabPrompt.swift */,
 				A02F00000000000000000006 /* Assets.xcassets */,
 				A02F00000000000000000005 /* Less.entitlements */,
 			);
@@ -68,9 +123,28 @@
 			isa = PBXGroup;
 			children = (
 				A02F00000000000000000007 /* Ledger.swift */,
+				A02F00000000000000000008 /* Bridge.swift */,
+				A02F00000000000000000009 /* TabLog.swift */,
 			);
 			name = LessCore;
 			path = ../Sources/LessCore;
+			sourceTree = "<group>";
+		};
+		A03F00000000000000000005 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A02F0000000000000000000C /* GroupContainer.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A03F00000000000000000006 /* LessBridge */ = {
+			isa = PBXGroup;
+			children = (
+				A02F0000000000000000000D /* main.swift */,
+				A02F0000000000000000000E /* LessBridge.entitlements */,
+			);
+			path = LessBridge;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -83,15 +157,33 @@
 				A05F00000000000000000002 /* Sources */,
 				A05F00000000000000000003 /* Frameworks */,
 				A05F00000000000000000001 /* Resources */,
+				A05F00000000000000000006 /* Embed Bridge */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A08F00000000000000000001 /* PBXTargetDependency */,
 			);
 			name = Less;
 			productName = Less;
 			productReference = A02F00000000000000000001 /* Less.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A04F00000000000000000003 /* LessBridge */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A07F00000000000000000003 /* Build configuration list for PBXNativeTarget "LessBridge" */;
+			buildPhases = (
+				A05F00000000000000000004 /* Sources */,
+				A05F00000000000000000005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LessBridge;
+			productName = "less-bridge";
+			productReference = A02F0000000000000000000F /* less-bridge */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -104,6 +196,9 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					A04F00000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					A04F00000000000000000003 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
@@ -122,6 +217,7 @@
 			projectRoot = "";
 			targets = (
 				A04F00000000000000000001 /* Less */,
+				A04F00000000000000000003 /* LessBridge */,
 			);
 		};
 /* End PBXProject section */
@@ -146,10 +242,33 @@
 				A01F00000000000000000002 /* ContentView.swift in Sources */,
 				A01F00000000000000000003 /* AppModel.swift in Sources */,
 				A01F00000000000000000004 /* Ledger.swift in Sources */,
+				A01F00000000000000000006 /* Bridge.swift in Sources */,
+				A01F00000000000000000007 /* TabLog.swift in Sources */,
+				A01F00000000000000000008 /* TabReviewView.swift in Sources */,
+				A01F00000000000000000009 /* TabPrompt.swift in Sources */,
+				A01F0000000000000000000A /* GroupContainer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A05F00000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A01F0000000000000000000B /* main.swift in Sources */,
+				A01F0000000000000000000C /* Bridge.swift in Sources */,
+				A01F0000000000000000000D /* GroupContainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A08F00000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A04F00000000000000000003 /* LessBridge */;
+			targetProxy = A09F00000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A06F00000000000000000001 /* Debug */ = {
@@ -337,6 +456,46 @@
 			};
 			name = Release;
 		};
+		A06F00000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LessBridge/LessBridge.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.less.bridge;
+				PRODUCT_NAME = "less-bridge";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A06F00000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LessBridge/LessBridge.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.less.bridge;
+				PRODUCT_NAME = "less-bridge";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -354,6 +513,15 @@
 			buildConfigurations = (
 				A06F00000000000000000003 /* Debug */,
 				A06F00000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A07F00000000000000000003 /* Build configuration list for PBXNativeTarget "LessBridge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A06F00000000000000000005 /* Debug */,
+				A06F00000000000000000006 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
