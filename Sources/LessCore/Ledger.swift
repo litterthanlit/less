@@ -159,7 +159,7 @@ public enum LedgerMutations {
   }
 }
 
-private struct Lossy<T: Decodable>: Decodable {
+struct Lossy<T: Decodable>: Decodable {
   let value: T?
 
   init(from decoder: Decoder) throws {
@@ -225,13 +225,18 @@ extension Ledger {
   }
 
   private static func backUp(_ data: Data, in defaults: UserDefaults, now: Date) {
-    let base = "\(storageKey).backup.\(Int(now.timeIntervalSince1970))"
-    var key = base
-    var suffix = 1
-    while defaults.object(forKey: key) != nil {
-      key = "\(base)-\(suffix)"
-      suffix += 1
-    }
-    defaults.set(data, forKey: key)
+    storeBackup(data, under: storageKey, in: defaults, now: now)
   }
+}
+
+// copies raw bytes to <key>.backup.<unix-seconds>[-n] and never overwrites one
+func storeBackup(_ data: Data, under storageKey: String, in defaults: UserDefaults, now: Date) {
+  let base = "\(storageKey).backup.\(Int(now.timeIntervalSince1970))"
+  var key = base
+  var suffix = 1
+  while defaults.object(forKey: key) != nil {
+    key = "\(base)-\(suffix)"
+    suffix += 1
+  }
+  defaults.set(data, forKey: key)
 }
