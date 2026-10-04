@@ -41,21 +41,15 @@ public struct Snapshot: Equatable, Sendable {
   public var create: TimeInterval
   public var consume: TimeInterval
   public var run: Run?
-  public var createPart: Int
-  public var consumePart: Int
 
-  public init(
-    create: TimeInterval,
-    consume: TimeInterval,
-    run: Run?,
-    createPart: Int,
-    consumePart: Int
-  ) {
+  public init(create: TimeInterval, consume: TimeInterval, run: Run?) {
     self.create = create
     self.consume = consume
     self.run = run
-    self.createPart = createPart
-    self.consumePart = consumePart
+  }
+
+  public var ratioLine: String {
+    LedgerMutations.ratioLine(create: create, consume: consume)
   }
 }
 
@@ -63,12 +57,19 @@ public enum LedgerMutations {
   public static func toggle(_ kind: Kind, on ledger: Ledger, now: Date) -> Ledger {
     var sessions = ledger.sessions
     if let run = ledger.run {
-      sessions.append(Session(kind: run.kind, start: run.start, end: now))
+      sessions.append(closed(run, at: now))
       if run.kind == kind {
         return Ledger(sessions: sessions, run: nil)
       }
     }
     return Ledger(sessions: sessions, run: Run(kind: kind, start: now))
+  }
+
+  public static func stop(on ledger: Ledger, at now: Date) -> Ledger {
+    guard let run = ledger.run else {
+      return ledger
+    }
+    return Ledger(sessions: ledger.sessions + [closed(run, at: now)], run: nil)
   }
 
   public static func snapshot(ledger: Ledger, now: Date, calendar: Calendar) -> Snapshot {
@@ -94,14 +95,7 @@ public enum LedgerMutations {
       add(run.kind, from: run.start, to: now)
     }
 
-    let (createPart, consumePart) = ratioParts(create: create, consume: consume)
-    return Snapshot(
-      create: create,
-      consume: consume,
-      run: ledger.run,
-      createPart: createPart,
-      consumePart: consumePart
-    )
+    return Snapshot(create: create, consume: consume, run: ledger.run)
   }
 
   public static func formatDuration(_ t: TimeInterval) -> String {
@@ -115,8 +109,26 @@ public enum LedgerMutations {
     return String(format: "%d:%02d", minutes, seconds)
   }
 
-  public static func ratioLine(createPart: Int, consumePart: Int) -> String {
-    "\(createPart) : \(consumePart)"
+  public static func ratioLine(create: TimeInterval, consume: TimeInterval) -> String {
+    let createSeconds = wholeSeconds(create)
+    let consumeSeconds = wholeSeconds(consume)
+    if createSeconds == 0 && consumeSeconds == 0 {
+      return "0 : 0"
+    }
+    if consumeSeconds == 0 {
+      return "1 : 0"
+    }
+    if createSeconds == 0 {
+      return "0 : 1"
+    }
+    if createSeconds >= consumeSeconds {
+      return "\(ratioText(createSeconds, over: consumeSeconds)) : 1"
+    }
+    return "1 : \(ratioText(consumeSeconds, over: createSeconds))"
+  }
+
+  private static func closed(_ run: Run, at now: Date) -> Session {
+    Session(kind: run.kind, start: run.start, end: max(run.start, now))
   }
 
   private static func overlap(
@@ -130,44 +142,79 @@ public enum LedgerMutations {
     return max(0, hi.timeIntervalSince(lo))
   }
 
-  private static func ratioParts(create: TimeInterval, consume: TimeInterval) -> (Int, Int) {
-    let createSeconds = Int(create.rounded(.towardZero))
-    let consumeSeconds = Int(consume.rounded(.towardZero))
-    if createSeconds == 0 && consumeSeconds == 0 {
-      return (0, 0)
+  private static func wholeSeconds(_ t: TimeInterval) -> Int {
+    guard t > 0 else {
+      return 0
     }
-    if createSeconds > 0 && consumeSeconds == 0 {
-      return (1, 0)
-    }
-    if createSeconds == 0 && consumeSeconds > 0 {
-      return (0, 1)
-    }
-    let g = gcd(createSeconds, consumeSeconds)
-    return (createSeconds / g, consumeSeconds / g)
+    // keeps Int(_:) from trapping on absurd or infinite input
+    return Int(min(t, 1e12))
   }
 
-  private static func gcd(_ a: Int, _ b: Int) -> Int {
-    var a = abs(a)
-    var b = abs(b)
-    while b != 0 {
-      let remainder = a % b
-      a = b
-      b = remainder
+  private static func ratioText(_ larger: Int, over smaller: Int) -> String {
+    let tenths = (larger * 20 + smaller) / (2 * smaller)
+    if tenths >= 100 {
+      return String((larger * 2 + smaller) / (2 * smaller))
     }
-    return max(a, 1)
+    return "\(tenths / 10).\(tenths % 10)"
+  }
+}
+
+private struct Lossy<T: Decodable>: Decodable {
+  let value: T?
+
+  init(from decoder: Decoder) throws {
+    value = try? T(from: decoder)
   }
 }
 
 extension Ledger {
   public static let storageKey = "app.less.ledger"
 
-  public static func load(from defaults: UserDefaults) -> Ledger {
-    guard let data = defaults.data(forKey: storageKey),
-      let decoded = try? JSONDecoder().decode(Ledger.self, from: data)
-    else {
+  private static let formatVersion = 1
+
+  private enum CodingKeys: String, CodingKey {
+    case version
+    case sessions
+    case run
+  }
+
+  private struct Stored: Decodable {
+    let ledger: Ledger
+    let droppedAny: Bool
+
+    init(from decoder: Decoder) throws {
+      let container = try decoder.container(keyedBy: Ledger.CodingKeys.self)
+      let sessions = try container.decode([Lossy<Session>].self, forKey: .sessions)
+      let run = try container.decodeIfPresent(Lossy<Run>.self, forKey: .run)
+      let kept = sessions.compactMap(\.value)
+      ledger = Ledger(sessions: kept, run: run?.value)
+      droppedAny = kept.count != sessions.count || (run != nil && run?.value == nil)
+    }
+  }
+
+  public init(from decoder: Decoder) throws {
+    self = try Stored(from: decoder).ledger
+  }
+
+  public func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(Self.formatVersion, forKey: .version)
+    try container.encode(sessions, forKey: .sessions)
+    try container.encodeIfPresent(run, forKey: .run)
+  }
+
+  public static func load(from defaults: UserDefaults, now: Date = Date()) -> Ledger {
+    guard let data = defaults.data(forKey: storageKey) else {
       return Ledger()
     }
-    return decoded
+    guard let stored = try? JSONDecoder().decode(Stored.self, from: data) else {
+      backUp(data, in: defaults, now: now)
+      return Ledger()
+    }
+    if stored.droppedAny {
+      backUp(data, in: defaults, now: now)
+    }
+    return stored.ledger
   }
 
   public func save(to defaults: UserDefaults) {
@@ -175,5 +222,16 @@ extension Ledger {
       return
     }
     defaults.set(data, forKey: Self.storageKey)
+  }
+
+  private static func backUp(_ data: Data, in defaults: UserDefaults, now: Date) {
+    let base = "\(storageKey).backup.\(Int(now.timeIntervalSince1970))"
+    var key = base
+    var suffix = 1
+    while defaults.object(forKey: key) != nil {
+      key = "\(base)-\(suffix)"
+      suffix += 1
+    }
+    defaults.set(data, forKey: key)
   }
 }
